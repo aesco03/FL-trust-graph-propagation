@@ -1,0 +1,26 @@
+.idea
+.vscode
+.DS_store
+.venv
+ITS_USECASE/
+FLAIR_USECASE/
+__pycache__
+local_run_simulation.py
+local_run_simulation.sh
+venv
+out
+datasets/
+/datasets/*
+
+# Coverage files
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+coverage.json
+.pytest_cache/
+pytest.log
+*.egg-info/
+tests/logs/
+.sonarwork/
+*sonar-project.properties
