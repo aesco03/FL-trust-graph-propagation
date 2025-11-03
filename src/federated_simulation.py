@@ -41,6 +41,7 @@ from src.simulation_strategies.trimmed_mean_based_removal_strategy import Trimme
 from src.simulation_strategies.mutli_krum_strategy import MultiKrumStrategy
 from src.simulation_strategies.rfa_based_removal_strategy import RFABasedRemovalStrategy
 from src.simulation_strategies.bulyan_strategy import BulyanStrategy
+from src.simulation_strategies.trust_graph_strategy import TrustGraphStrategy
 
 from src.data_models.simulation_strategy_config import StrategyConfig
 from src.data_models.simulation_strategy_history import SimulationStrategyHistory
@@ -353,6 +354,26 @@ class FederatedSimulation:
                 begin_removing_from_round=self.strategy_config.begin_removing_from_round,
                 strategy_history=self.strategy_history,
                 num_krum_selections=self.strategy_config.num_krum_selections,
+            )
+
+        elif aggregation_strategy_keyword == "trust_graph":
+            self._aggregation_strategy = TrustGraphStrategy(
+                initial_parameters=ndarrays_to_parameters(self._get_model_params(self._network_model)),
+                min_fit_clients=self.strategy_config.min_fit_clients,
+                min_evaluate_clients=self.strategy_config.min_evaluate_clients,
+                min_available_clients=self.strategy_config.min_available_clients,
+                evaluate_metrics_aggregation_fn=self.strategy_config.evaluate_metrics_aggregation_fn,
+                fit_metrics_aggregation_fn=weighted_average,
+                remove_clients=self.strategy_config.remove_clients,
+                begin_removing_from_round=self.strategy_config.begin_removing_from_round,
+                alpha=self.strategy_config.alpha,
+                K=self.strategy_config.K,
+                tau=self.strategy_config.tau,
+                edge_rule=self.strategy_config.edge_rule,
+                neighbor_cap=self.strategy_config.neighbor_cap,
+                graph_static=self.strategy_config.graph_static,
+                convergence_eps=self.strategy_config.convergence_eps,
+                strategy_history=self.strategy_history,
             )
 
         else:

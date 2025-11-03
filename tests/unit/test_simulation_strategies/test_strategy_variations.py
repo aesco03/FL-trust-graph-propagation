@@ -59,6 +59,21 @@ class TestStrategyVariations:
                 },
             ),
             (
+                "trust_graph",
+                "src.simulation_strategies.trust_graph_strategy.TrustGraphStrategy",
+                {
+                    "remove_clients": True,
+                    "begin_removing_from_round": 2,
+                    "alpha": 0.8,
+                    "K": 5,
+                    "tau": 0.2,
+                    "edge_rule": "similarity",
+                    "neighbor_cap": 3,
+                    "graph_static": True,
+                    "convergence_eps": 1e-3,
+                },
+            ),
+            (
                 "trimmed_mean",
                 "src.simulation_strategies.trimmed_mean_based_removal_strategy.TrimmedMeanBasedRemovalStrategy",
                 {
@@ -164,6 +179,39 @@ class TestStrategyVariations:
                     {"beta_value": 0.1, "trust_threshold": 0.3},  # Low values
                     {"beta_value": 0.5, "trust_threshold": 0.7},  # Medium values
                     {"beta_value": 0.9, "trust_threshold": 0.9},  # High values
+                ],
+            ),
+            (
+                "trust_graph",
+                "src.simulation_strategies.trust_graph_strategy.TrustGraphStrategy",
+                [
+                    {
+                        "alpha": 0.6,
+                        "K": 4,
+                        "tau": 0.15,
+                        "edge_rule": "similarity",
+                        "neighbor_cap": 2,
+                        "graph_static": True,
+                        "convergence_eps": 1e-3,
+                    },
+                    {
+                        "alpha": 0.8,
+                        "K": 8,
+                        "tau": 0.25,
+                        "edge_rule": "similarity",
+                        "neighbor_cap": 5,
+                        "graph_static": True,
+                        "convergence_eps": 1e-3,
+                    },
+                    {
+                        "alpha": 0.9,
+                        "K": 12,
+                        "tau": 0.35,
+                        "edge_rule": "similarity",
+                        "neighbor_cap": 8,
+                        "graph_static": True,
+                        "convergence_eps": 1e-4,
+                    },
                 ],
             ),
             (
@@ -303,6 +351,10 @@ class TestStrategyVariations:
                     strategy.num_of_malicious_clients
                     == params["num_of_malicious_clients"]
                 )
+            elif strategy_name == "trust_graph":
+                assert strategy.alpha == pytest.approx(params["alpha"])
+                assert strategy.K == params["K"]
+                assert strategy.tau == pytest.approx(params["tau"])
 
     @pytest.mark.parametrize(
         "strategy_name,strategy_class",

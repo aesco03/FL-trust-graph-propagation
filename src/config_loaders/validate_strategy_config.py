@@ -7,9 +7,19 @@ config_schema = {
         # Common parameters
         "aggregation_strategy_keyword": {
             "type": "string",
-            "enum": ["trust", "pid", "pid_scaled", "pid_standardized",
-                    "multi-krum", "krum", "multi-krum-based", "trimmed_mean",
-                    "rfa", "bulyan"]
+            "enum": [
+                "trust",
+                "pid",
+                "pid_scaled",
+                "pid_standardized",
+                "multi-krum",
+                "krum",
+                "multi-krum-based",
+                "trimmed_mean",
+                "rfa",
+                "bulyan",
+                "trust_graph"
+            ]
         },
         "strict_mode": {
             "type": "string",
@@ -196,6 +206,22 @@ def validate_dependent_params(strategy_config: dict) -> None:
             if param not in strategy_config:
                 raise ValidationError(
                     f"Missing parameter {param} for trust aggregation {aggregation_strategy_keyword}"
+                )
+    elif aggregation_strategy_keyword == "trust_graph":
+        trust_graph_specific_parameters = [
+            "begin_removing_from_round",
+            "alpha",
+            "K",
+            "tau",
+            "edge_rule",
+            "neighbor_cap",
+            "graph_static",
+            "convergence_eps"
+        ]
+        for param in trust_graph_specific_parameters:
+            if param not in strategy_config:
+                raise ValidationError(
+                    f"Missing parameter {param} for trust_graph aggregation {aggregation_strategy_keyword}"
                 )
     elif aggregation_strategy_keyword in ("pid", "pid_scaled", "pid_standardized"):
         pid_specific_parameters = [

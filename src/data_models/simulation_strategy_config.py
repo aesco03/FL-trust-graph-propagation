@@ -52,6 +52,14 @@ class StrategyConfig:
 
     strategy_number: int = None
 
+    alpha: float = None
+    K: int = None
+    tau: float = None
+    edge_rule: str = None
+    neighbor_cap: int = None
+    graph_static: bool = None
+    convergence_eps: float = None
+
     def __init__(self, **kwargs):
         for key, value in kwargs.items():
             if value in ("true", "false"):

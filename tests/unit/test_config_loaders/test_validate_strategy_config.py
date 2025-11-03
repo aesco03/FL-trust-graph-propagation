@@ -161,6 +161,49 @@ class TestValidateStrategyConfig:
         # Should not raise any exception
         validate_strategy_config(config)
 
+    def test_validate_strategy_config_valid_trust_graph_strategy(self):
+        """Test validation of valid trust_graph strategy configuration."""
+        config = {
+            "aggregation_strategy_keyword": "trust_graph",
+            "remove_clients": "true",
+            "dataset_keyword": "femnist_iid",
+            "model_type": "cnn",
+            "use_llm": "false",
+            "num_of_rounds": 4,
+            "num_of_clients": 5,
+            "num_of_malicious_clients": 1,
+            "attack_type": "gaussian_noise",
+            "show_plots": "false",
+            "save_plots": "true",
+            "save_csv": "true",
+            "preserve_dataset": "true",
+            "training_subset_fraction": 0.9,
+            "training_device": "cpu",
+            "cpus_per_client": 1,
+            "gpus_per_client": 0.0,
+            "min_fit_clients": 5,
+            "min_evaluate_clients": 5,
+            "min_available_clients": 5,
+            "evaluate_metrics_aggregation_fn": "weighted_average",
+            "num_of_client_epochs": 1,
+            "batch_size": 20,
+            "gaussian_noise_mean": 0,
+            "gaussian_noise_std": 75,
+            "attack_ratio": 1.0,
+            # Trust graph specific parameters
+            "begin_removing_from_round": 2,
+            "alpha": 0.8,
+            "K": 8,
+            "tau": 0.2,
+            "edge_rule": "similarity",
+            "neighbor_cap": 3,
+            "graph_static": True,
+            "convergence_eps": 1e-3,
+        }
+
+        # Should not raise any exception
+        validate_strategy_config(config)
+
 
 class TestValidateStrategyConfigMissingRequiredParams:
     """Test validation errors for missing required parameters."""
