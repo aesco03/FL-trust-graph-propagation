@@ -1,7 +1,6 @@
 {
   "shared_settings": {
     "strict_mode": "true",
-    "aggregation_strategy_keyword": "pid",
     "remove_clients": "true",
     "dataset_keyword": "femnist_iid",
     "use_llm": "false",
@@ -47,13 +46,36 @@
   },
   "simulation_strategies": [
     {
+      "aggregation_strategy_keyword": "pid",
       "attack_type": "gaussian_noise",
       "num_std_dev": 2
     },
     {
+      "aggregation_strategy_keyword": "pid",
       "attack_type": "label_flipping",
       "num_std_dev": 3
+    },
+    {
+      "aggregation_strategy_keyword": "trust_graph",
+      "attack_type": "gaussian_noise",
+      "alpha": 0.8,
+      "K": 8,
+      "tau": 0.25,
+      "edge_rule": "similarity",
+      "neighbor_cap": 5,
+      "graph_static": false,
+      "convergence_eps": 0.001
+    },
+    {
+      "aggregation_strategy_keyword": "trust_graph",
+      "attack_type": "label_flipping",
+      "alpha": 0.8,
+      "K": 8,
+      "tau": 0.25,
+      "edge_rule": "similarity",
+      "neighbor_cap": 5,
+      "graph_static": false,
+      "convergence_eps": 0.001
     }
   ]
 }
-
