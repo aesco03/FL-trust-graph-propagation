@@ -1,6 +1,7 @@
 import numpy as np
 import flwr as fl
 import logging
+import time
 
 from typing import Dict, List, Optional, Tuple, Union
 
@@ -153,6 +154,7 @@ class TrustGraphStrategy(fl.server.strategy.FedAvg):
         client_ids, tensors = self._flatten_params(aggregate_clients)
         self._last_client_order = client_ids
 
+        t_start = time.time_ns()
         self_vec, abs_dists = self._compute_self_scores(tensors)
         self._ensure_adjacency(tensors)
 
@@ -189,6 +191,8 @@ class TrustGraphStrategy(fl.server.strategy.FedAvg):
 
         aggregated_parameters = ndarrays_to_parameters(aggregated_layers)
 
+        t_end = time.time_ns()
+        self.strategy_history.insert_round_history_entry(score_calculation_time_nanos=t_end - t_start)
         self.strategy_history.insert_round_history_entry(removal_threshold=self.tau)
 
         return aggregated_parameters, {}

@@ -15,17 +15,34 @@ bar_width = 0.2
 
 def _generate_single_string_strategy_label(strategy_config: StrategyConfig) -> str:
     """Generate single-string label for strategy (better to use as legend)"""
-
-    return (
+    base = (
         f"strategy: {strategy_config.aggregation_strategy_keyword}, "
         f"dataset: {strategy_config.dataset_keyword}, "
+        f"attack: {strategy_config.attack_type}, "
         f"remove: {strategy_config.remove_clients}, "
         f"remove_from: {strategy_config.begin_removing_from_round if strategy_config.remove_clients else 'n/a'}, "
-        f"total clients: {strategy_config.num_of_clients}, "
-        f"bad_clients: {strategy_config.num_of_malicious_clients}, "
-        f"client_epochs: {strategy_config.num_of_client_epochs}, "
-        f"batch_size: {strategy_config.batch_size}"
+        f"clients: {strategy_config.num_of_clients}, "
+        f"malicious: {strategy_config.num_of_malicious_clients}"
     )
+
+    keyword = strategy_config.aggregation_strategy_keyword
+    if keyword in ("pid", "pid_scaled", "pid_standardized"):
+        base += (
+            f", num_std_dev: {getattr(strategy_config, 'num_std_dev', 'n/a')}"
+        )
+    elif keyword == "trust_graph":
+        base += (
+            f", alpha: {getattr(strategy_config, 'alpha', 'n/a')}, "
+            f"K: {getattr(strategy_config, 'K', 'n/a')}, "
+            f"tau: {getattr(strategy_config, 'tau', 'n/a')}"
+        )
+    elif keyword == "trust":
+        base += (
+            f", beta: {getattr(strategy_config, 'beta_value', 'n/a')}, "
+            f"thr: {getattr(strategy_config, 'trust_threshold', 'n/a')}"
+        )
+
+    return base
 
 
 def _generate_multi_string_strategy_label(strategy_config: StrategyConfig) -> str:
