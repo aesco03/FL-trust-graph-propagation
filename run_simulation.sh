@@ -35,7 +35,12 @@ if [ ! -d "datasets/bloodmnist" ]; then
 fi
 
 log_info "🚀 Initializing simulation..."
-if "$PYTHON_CMD" -m src.simulation_runner; then
+if [ -n "$1" ]; then
+  CFG_ARG="$1"
+else
+  CFG_ARG=""
+fi
+if "$PYTHON_CMD" -m src.simulation_runner $CFG_ARG; then
     echo ""
     show_simulation_output_info "out/"
 else

@@ -1,5 +1,7 @@
 import json
 import logging
+import os
+import sys
 
 from src.config_loaders.config_loader import ConfigLoader
 
@@ -80,6 +82,6 @@ class SimulationRunner:
 
 
 if __name__ == "__main__":
-    """Put the filename of the json strategy from config/simulation_strategies here"""
-    simulation_runner = SimulationRunner("example_strategy_config.json")
+    cfg = sys.argv[1] if len(sys.argv) > 1 else os.environ.get("USECASE_CONFIG", "example_strategy_config.json")
+    simulation_runner = SimulationRunner(cfg)
     simulation_runner.run()
