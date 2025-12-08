@@ -115,9 +115,35 @@ class TrustGraphStrategy(fl.server.strategy.FedAvg):
         W = W / row_sums
         return W
 
+    def _build_cosine_adjacency(self, tensors: List[np.ndarray]) -> np.ndarray:
+        n = len(tensors)
+        if n == 0:
+            return np.zeros((0, 0), dtype=np.float64)
+        M = np.stack(tensors)
+        norms = np.linalg.norm(M, axis=1, keepdims=True)
+        norms[norms == 0.0] = 1.0
+        X = M / norms
+        W = X @ X.T
+        np.fill_diagonal(W, 0.0)
+        W = np.clip(W, 0.0, None)
+        if self.neighbor_cap and self.neighbor_cap > 0:
+            for i in range(n):
+                idx_sorted = np.argsort(W[i])[::-1]
+                keep = idx_sorted[:self.neighbor_cap]
+                mask = np.ones(n, dtype=bool)
+                mask[keep] = False
+                W[i][mask] = 0.0
+        row_sums = W.sum(axis=1, keepdims=True)
+        row_sums[row_sums == 0.0] = 1.0
+        W = W / row_sums
+        return W
+
     def _ensure_adjacency(self, tensors: List[np.ndarray]) -> None:
         if self._adjacency_matrix is None or not self.graph_static:
-            self._adjacency_matrix = self._build_similarity_adjacency(tensors)
+            if str(self.edge_rule).lower() == "cosine":
+                self._adjacency_matrix = self._build_cosine_adjacency(tensors)
+            else:
+                self._adjacency_matrix = self._build_similarity_adjacency(tensors)
 
     def _propagate_trust(self, self_vec: np.ndarray, init_trust: Optional[np.ndarray] = None) -> np.ndarray:
         t = init_trust.copy() if init_trust is not None else self_vec.copy()

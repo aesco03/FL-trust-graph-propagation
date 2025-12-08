@@ -339,7 +339,7 @@ class FederatedSimulation:
                 remove_clients=self.strategy_config.remove_clients,
                 begin_removing_from_round=self.strategy_config.begin_removing_from_round,
                 strategy_history=self.strategy_history,
-                num_of_malicious_clients=self.strategy_config.num_of_malicious_clients
+                weighted_median_factor=getattr(self.strategy_config, "weighted_median_factor", 1.0)
             )
 
         elif aggregation_strategy_keyword == "bulyan":
