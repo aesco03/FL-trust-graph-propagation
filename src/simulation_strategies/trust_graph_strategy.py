@@ -29,6 +29,7 @@ class TrustGraphStrategy(fl.server.strategy.FedAvg):
             graph_static: bool,
             convergence_eps: float,
             strategy_history: SimulationStrategyHistory,
+            tau_quantile: Optional[float] = None,
             *args,
             **kwargs
     ):
@@ -40,6 +41,8 @@ class TrustGraphStrategy(fl.server.strategy.FedAvg):
         self.alpha = alpha
         self.K = K
         self.tau = tau
+        self.tau_quantile = tau_quantile
+        self.current_tau = tau
         self.edge_rule = edge_rule
         self.neighbor_cap = neighbor_cap
         self.graph_static = graph_static
@@ -115,9 +118,40 @@ class TrustGraphStrategy(fl.server.strategy.FedAvg):
         W = W / row_sums
         return W
 
+    def _build_cosine_adjacency(self, tensors: List[np.ndarray]) -> np.ndarray:
+        n = len(tensors)
+        if n == 0:
+            return np.zeros((0, 0), dtype=np.float64)
+        M = np.stack(tensors)
+        norms = np.linalg.norm(M, axis=1, keepdims=True)
+        norms[norms == 0.0] = 1.0
+        X = M / norms
+        W = X @ X.T
+        np.fill_diagonal(W, 0.0)
+        W = np.clip(W, 0.0, None)
+        if self.neighbor_cap and self.neighbor_cap > 0:
+            for i in range(n):
+                idx_sorted = np.argsort(W[i])[::-1]
+                keep = idx_sorted[:self.neighbor_cap]
+                mask = np.ones(n, dtype=bool)
+                mask[keep] = False
+                W[i][mask] = 0.0
+        row_sums = W.sum(axis=1, keepdims=True)
+        row_sums[row_sums == 0.0] = 1.0
+        W = W / row_sums
+        return W
+
     def _ensure_adjacency(self, tensors: List[np.ndarray]) -> None:
-        if self._adjacency_matrix is None or not self.graph_static:
-            self._adjacency_matrix = self._build_similarity_adjacency(tensors)
+        rebuild = (
+            self._adjacency_matrix is None or
+            not self.graph_static or
+            self._adjacency_matrix.shape[0] != len(tensors)
+        )
+        if rebuild:
+            if str(self.edge_rule).lower() == "cosine":
+                self._adjacency_matrix = self._build_cosine_adjacency(tensors)
+            else:
+                self._adjacency_matrix = self._build_similarity_adjacency(tensors)
 
     def _propagate_trust(self, self_vec: np.ndarray, init_trust: Optional[np.ndarray] = None) -> np.ndarray:
         t = init_trust.copy() if init_trust is not None else self_vec.copy()
@@ -175,6 +209,15 @@ class TrustGraphStrategy(fl.server.strategy.FedAvg):
                 absolute_distance=float(abs_dists[i])
             )
 
+        # Optionally compute dynamic tau based on trust distribution
+        if self.tau_quantile is not None:
+            try:
+                self.current_tau = float(np.quantile(trust_vec, self.tau_quantile))
+            except Exception:
+                self.current_tau = self.tau
+        else:
+            self.current_tau = self.tau
+
         weights = trust_vec.copy()
         total = weights.sum()
         if total > 0:
@@ -193,7 +236,7 @@ class TrustGraphStrategy(fl.server.strategy.FedAvg):
 
         t_end = time.time_ns()
         self.strategy_history.insert_round_history_entry(score_calculation_time_nanos=t_end - t_start)
-        self.strategy_history.insert_round_history_entry(removal_threshold=self.tau)
+        self.strategy_history.insert_round_history_entry(removal_threshold=self.current_tau)
 
         return aggregated_parameters, {}
 
@@ -208,7 +251,7 @@ class TrustGraphStrategy(fl.server.strategy.FedAvg):
 
         if self.remove_clients:
             for client_id, trust in client_trusts.items():
-                if trust < self.tau and client_id not in self.removed_client_ids:
+                if trust < self.current_tau and client_id not in self.removed_client_ids:
                     self.removed_client_ids.add(client_id)
 
         self.strategy_history.update_client_participation(

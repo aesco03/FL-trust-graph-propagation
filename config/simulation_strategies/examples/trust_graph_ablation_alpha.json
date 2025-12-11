@@ -1,23 +1,21 @@
 {
   "shared_settings": {
-    "strict_mode": "true",
     "aggregation_strategy_keyword": "trust_graph",
+    "strict_mode": "true",
     "remove_clients": "true",
     "dataset_keyword": "femnist_iid",
     "use_llm": "false",
+    "model_type": "cnn",
     "num_of_rounds": 50,
     "num_of_clients": 20,
     "num_of_malicious_clients": 5,
-    "attack_ratio": 1.0,
-    "gaussian_noise_mean": 0,
-    "gaussian_noise_std": 75,
+    "attack_type": "label_flipping",
     "show_plots": "false",
     "save_plots": "true",
     "save_csv": "true",
     "training_device": "cpu",
     "cpus_per_client": 1,
     "gpus_per_client": 0.0,
-    "model_type": "cnn",
     "training_subset_fraction": 0.8,
     "min_fit_clients": 20,
     "min_evaluate_clients": 20,
@@ -29,15 +27,9 @@
     "begin_removing_from_round": 10
   },
   "simulation_strategies": [
-    {
-      "attack_type": "gaussian_noise",
-      "alpha": 0.8,
-      "K": 8,
-      "tau": 0.2,
-      "edge_rule": "similarity",
-      "neighbor_cap": 3,
-      "graph_static": true,
-      "convergence_eps": 1e-3
-    }
+    { "alpha": 0.6, "K": 8,  "tau": 0.25, "edge_rule": "similarity", "neighbor_cap": 5, "graph_static": true,  "convergence_eps": 0.001 },
+    { "alpha": 0.7, "K": 8,  "tau": 0.25, "edge_rule": "similarity", "neighbor_cap": 5, "graph_static": true,  "convergence_eps": 0.001 },
+    { "alpha": 0.8, "K": 8,  "tau": 0.25, "edge_rule": "similarity", "neighbor_cap": 5, "graph_static": true,  "convergence_eps": 0.001 },
+    { "alpha": 0.9, "K": 8,  "tau": 0.25, "edge_rule": "similarity", "neighbor_cap": 5, "graph_static": true,  "convergence_eps": 0.001 }
   ]
 }

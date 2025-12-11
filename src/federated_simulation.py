@@ -270,7 +270,9 @@ class FederatedSimulation:
                 strategy_history=self.strategy_history,
                 network_model=self._network_model,
                 aggregation_strategy_keyword=aggregation_strategy_keyword,
-                use_lora=True if self.strategy_config.use_llm and self.strategy_config.llm_finetuning == "lora" else False
+                use_lora=True if self.strategy_config.use_llm and self.strategy_config.llm_finetuning == "lora" else False,
+                pid_threshold_method=getattr(self.strategy_config, "pid_threshold_method", None),
+                pid_threshold_quantile=getattr(self.strategy_config, "pid_threshold_quantile", None),
             )
         elif aggregation_strategy_keyword == "krum":
             self._aggregation_strategy = KrumBasedRemovalStrategy(
@@ -339,7 +341,7 @@ class FederatedSimulation:
                 remove_clients=self.strategy_config.remove_clients,
                 begin_removing_from_round=self.strategy_config.begin_removing_from_round,
                 strategy_history=self.strategy_history,
-                num_of_malicious_clients=self.strategy_config.num_of_malicious_clients
+                weighted_median_factor=getattr(self.strategy_config, "weighted_median_factor", 1.0)
             )
 
         elif aggregation_strategy_keyword == "bulyan":
@@ -373,6 +375,7 @@ class FederatedSimulation:
                 neighbor_cap=self.strategy_config.neighbor_cap,
                 graph_static=self.strategy_config.graph_static,
                 convergence_eps=self.strategy_config.convergence_eps,
+                tau_quantile=getattr(self.strategy_config, "tau_quantile", None),
                 strategy_history=self.strategy_history,
             )
 

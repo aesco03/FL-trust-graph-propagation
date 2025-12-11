@@ -72,36 +72,44 @@ class TrimmedMeanBasedRemovalStrategy(FedAvg):
 
         trimmed_clients: Set[str] = set()
 
+        time_start_calc = time.time_ns()
+
         for layer_weights in weights_by_layer:
             stacked = np.stack(layer_weights)  # Shape: (n_clients, layer_shape...)
 
             # Flatten weights across clients
             trimmed_layer = []
-            for i in range(np.prod(stacked.shape[1:]) if len(stacked.shape) > 1 else 1):
-                # For each scalar value in the layer (if multidimensional)
-                values = stacked if len(stacked.shape) == 1 else stacked.reshape((num_clients, -1))[:, i]
+            flat = stacked if len(stacked.shape) == 1 else stacked.reshape((num_clients, -1))
+            for i in range(flat.shape[1] if len(stacked.shape) > 1 else 1):
+                values = flat[:, i] if len(stacked.shape) > 1 else flat
                 sorted_indices = np.argsort(values)
-                trimmed_indices = sorted_indices[num_trim:-num_trim]
+                trimmed_indices = sorted_indices[num_trim:-num_trim] if num_trim > 0 else sorted_indices
                 trimmed_values = values[trimmed_indices]
                 trimmed_layer.append(np.mean(trimmed_values))
 
-                # Track which clients were trimmed
-                removed_this_dim = set(
-                    weights_results[j][2] for j in sorted_indices[:num_trim]
-                ).union(
+                removed_this_dim = set(weights_results[j][2] for j in sorted_indices[:num_trim]).union(
                     weights_results[j][2] for j in sorted_indices[-num_trim:]
-                )
+                ) if num_trim > 0 else set()
                 trimmed_clients.update(removed_this_dim)
 
             aggregated.append(np.array(trimmed_layer).reshape(stacked.shape[1:]))
 
-        # Log trimmed clients for this round
-        self.strategy_history.update_client_participation(
-            current_round=self.current_round,
-            removed_client_ids=removed_this_dim
-        )
+        time_end_calc = time.time_ns()
+        self.strategy_history.insert_round_history_entry(score_calculation_time_nanos=time_end_calc - time_start_calc)
 
-        logging.info(f"removed clients are : {removed_this_dim}")
+        # Compute per-client deviation from aggregated weights for plotting
+        flat_agg = np.concatenate([a.flatten() for a in aggregated])
+        for (w_layers, _, cid) in weights_results:
+            flat_client = np.concatenate([wl.flatten() for wl in w_layers])
+            deviation = float(np.linalg.norm(flat_client - flat_agg))
+            self.client_scores[cid] = deviation
+            self.strategy_history.insert_single_client_history_entry(
+                current_round=self.current_round,
+                client_id=int(cid),
+                removal_criterion=deviation
+            )
+
+        # Do not mark per-coordinate trimmed clients as removed; participation is handled in configure_fit
 
         return ndarrays_to_parameters(aggregated), {}
 
