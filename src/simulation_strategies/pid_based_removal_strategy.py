@@ -28,6 +28,8 @@ class PIDBasedRemovalStrategy(fl.server.strategy.FedAvg):
             network_model,
             use_lora,
             aggregation_strategy_keyword: str,
+            pid_threshold_method: Optional[str] = None,
+            pid_threshold_quantile: Optional[float] = None,
             *args,
             **kwargs
     ):
@@ -45,6 +47,8 @@ class PIDBasedRemovalStrategy(fl.server.strategy.FedAvg):
         self.kd = kd
         self.kp = kp
         self.num_std_dev = num_std_dev
+        self.pid_threshold_method = pid_threshold_method
+        self.pid_threshold_quantile = pid_threshold_quantile
 
         self.current_threshold = None
 
@@ -230,16 +234,32 @@ class PIDBasedRemovalStrategy(fl.server.strategy.FedAvg):
             )
 
         # use pid-based threshold if self.aggregation_strategy_keyword is pid
+        method = (self.pid_threshold_method or "zscore").lower()
         if self.aggregation_strategy_keyword == "pid":
-            pid_avg = np.mean(counted_pids)
-            pid_std = np.std(counted_pids)
-            self.current_threshold = pid_avg + (self.num_std_dev * pid_std) if len(counted_pids) > 1 else 0
+            if method == "mad":
+                med = np.median(counted_pids) if counted_pids else 0
+                mad = np.median(np.abs(counted_pids - med)) if len(counted_pids) > 1 else 0
+                self.current_threshold = med + (self.num_std_dev * 1.4826 * mad)
+            elif method == "quantile" and self.pid_threshold_quantile is not None:
+                self.current_threshold = float(np.quantile(counted_pids, self.pid_threshold_quantile)) if counted_pids else 0
+            else:
+                pid_avg = np.mean(counted_pids)
+                pid_std = np.std(counted_pids)
+                self.current_threshold = pid_avg + (self.num_std_dev * pid_std) if len(counted_pids) > 1 else 0
 
         # use distance-based threshold for pid_scaled and pid_standardized
         else:
-            distances_avg = np.mean(list(self.client_distances.values())) if self.client_distances else 0
-            distances_std = np.std(list(self.client_distances.values())) if self.client_distances else 0
-            self.current_threshold = distances_avg + (self.num_std_dev * distances_std) if len(counted_pids) > 1 else 0
+            dvals = list(self.client_distances.values())
+            if method == "mad":
+                med = np.median(dvals) if dvals else 0
+                mad = np.median(np.abs(dvals - med)) if len(dvals) > 1 else 0
+                self.current_threshold = med + (self.num_std_dev * 1.4826 * mad)
+            elif method == "quantile" and self.pid_threshold_quantile is not None:
+                self.current_threshold = float(np.quantile(dvals, self.pid_threshold_quantile)) if dvals else 0
+            else:
+                distances_avg = np.mean(dvals) if dvals else 0
+                distances_std = np.std(dvals) if dvals else 0
+                self.current_threshold = distances_avg + (self.num_std_dev * distances_std) if len(counted_pids) > 1 else 0
 
         self.strategy_history.insert_round_history_entry(removal_threshold=self.current_threshold)
 

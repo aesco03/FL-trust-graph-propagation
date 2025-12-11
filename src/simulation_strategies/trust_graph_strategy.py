@@ -28,6 +28,7 @@ class TrustGraphStrategy(fl.server.strategy.FedAvg):
             neighbor_cap: int,
             graph_static: bool,
             convergence_eps: float,
+            tau_quantile: Optional[float] = None,
             strategy_history: SimulationStrategyHistory,
             *args,
             **kwargs
@@ -40,6 +41,8 @@ class TrustGraphStrategy(fl.server.strategy.FedAvg):
         self.alpha = alpha
         self.K = K
         self.tau = tau
+        self.tau_quantile = tau_quantile
+        self.current_tau = tau
         self.edge_rule = edge_rule
         self.neighbor_cap = neighbor_cap
         self.graph_static = graph_static
@@ -201,6 +204,15 @@ class TrustGraphStrategy(fl.server.strategy.FedAvg):
                 absolute_distance=float(abs_dists[i])
             )
 
+        # Optionally compute dynamic tau based on trust distribution
+        if self.tau_quantile is not None:
+            try:
+                self.current_tau = float(np.quantile(trust_vec, self.tau_quantile))
+            except Exception:
+                self.current_tau = self.tau
+        else:
+            self.current_tau = self.tau
+
         weights = trust_vec.copy()
         total = weights.sum()
         if total > 0:
@@ -219,7 +231,7 @@ class TrustGraphStrategy(fl.server.strategy.FedAvg):
 
         t_end = time.time_ns()
         self.strategy_history.insert_round_history_entry(score_calculation_time_nanos=t_end - t_start)
-        self.strategy_history.insert_round_history_entry(removal_threshold=self.tau)
+        self.strategy_history.insert_round_history_entry(removal_threshold=self.current_tau)
 
         return aggregated_parameters, {}
 
@@ -234,7 +246,7 @@ class TrustGraphStrategy(fl.server.strategy.FedAvg):
 
         if self.remove_clients:
             for client_id, trust in client_trusts.items():
-                if trust < self.tau and client_id not in self.removed_client_ids:
+                if trust < self.current_tau and client_id not in self.removed_client_ids:
                     self.removed_client_ids.add(client_id)
 
         self.strategy_history.update_client_participation(

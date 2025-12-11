@@ -54,11 +54,13 @@ class RFABasedRemovalStrategy(FedAvg):
         time_end_calc = time.time_ns()
         self.rounds_history[f'{self.current_round}']['round_info'] = {}
         self.rounds_history[f'{self.current_round}']['round_info']['score_calculation_time_nanos'] = time_end_calc - time_start_calc
+        if self.strategy_history is not None:
+            self.strategy_history.insert_round_history_entry(score_calculation_time_nanos=time_end_calc - time_start_calc)
 
         self.rounds_history[f'{self.current_round}']['client_info'] = {}
         # Perform clustering for monitoring and logging purposes.
         clustering_param_data = []
-        for client_proxy, fit_res in results:
+        for client_proxy, fit_res in aggregate_clients:
             client_params = fl.common.parameters_to_ndarrays(fit_res.parameters)
             params_tensor_list = [torch.Tensor(arr) for arr in client_params]
             flattened_param_list = [param.flatten() for param in params_tensor_list]
@@ -85,7 +87,13 @@ class RFABasedRemovalStrategy(FedAvg):
                 'normalized_distance': float(normalized_distances[i][0]),
                 'is_removed': self.rounds_history.get(f'{self.current_round - 1}', {}).get('client_info', {}).get(f'client_{client_id}', {}).get('is_removed', False)
             }
-
+            if self.strategy_history is not None:
+                self.strategy_history.insert_single_client_history_entry(
+                    current_round=self.current_round,
+                    client_id=int(client_id),
+                    removal_criterion=float(deviation),
+                    absolute_distance=float(distances[i][0])
+                )
             logging.info(f'Aggregation round: {server_round} Client ID: {client_id} Deviation: {deviation} Normalized Distance: {normalized_distances[i][0]}')
 
         # Aggregate the parameters using the weighted geometric median.
@@ -153,6 +161,10 @@ class RFABasedRemovalStrategy(FedAvg):
 
         selected_client_ids = sorted(client_scores, key=client_scores.get, reverse=True)
         fit_ins = fl.common.FitIns(parameters, {})
+        if self.strategy_history is not None:
+            self.strategy_history.update_client_participation(
+                current_round=self.current_round, removed_client_ids=self.removed_client_ids
+            )
         return [(available_clients[cid], fit_ins) for cid in selected_client_ids if cid in available_clients]
 
     def aggregate_evaluate(
@@ -193,6 +205,8 @@ class RFABasedRemovalStrategy(FedAvg):
                 number_of_clients_in_loss_calc += 1
 
         loss_aggregated = weighted_loss_avg(aggregate_value)
+        if self.strategy_history is not None:
+            self.strategy_history.insert_round_history_entry(loss_aggregated=loss_aggregated)
 
         for result in results:
             logging.debug(f'Client ID: {result[0].cid}')

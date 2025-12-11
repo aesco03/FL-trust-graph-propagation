@@ -101,11 +101,11 @@ class KrumBasedRemovalStrategy(Krum):
         # perform clustering
         X = np.array(clustering_param_data)
         kmeans = KMeans(n_clusters=1, init='k-means++').fit(X)
-        distances = kmeans.transform(X)
+        abs_distances = kmeans.transform(X)
 
         scaler = MinMaxScaler()
-        scaler.fit(distances)
-        normalized_distances = scaler.transform(distances)
+        scaler.fit(abs_distances)
+        normalized_distances = scaler.transform(abs_distances)
 
         distances = np.zeros((len(results), len(results)))
 
@@ -125,7 +125,7 @@ class KrumBasedRemovalStrategy(Krum):
                 current_round=self.current_round,
                 client_id=int(client_id),
                 removal_criterion=float(score),
-                absolute_distance=float(distances[i][0])
+                absolute_distance=float(abs_distances[i][0])
             )
 
             logging.info(
