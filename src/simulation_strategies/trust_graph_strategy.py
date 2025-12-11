@@ -28,8 +28,8 @@ class TrustGraphStrategy(fl.server.strategy.FedAvg):
             neighbor_cap: int,
             graph_static: bool,
             convergence_eps: float,
-            tau_quantile: Optional[float] = None,
             strategy_history: SimulationStrategyHistory,
+            tau_quantile: Optional[float] = None,
             *args,
             **kwargs
     ):
@@ -142,7 +142,12 @@ class TrustGraphStrategy(fl.server.strategy.FedAvg):
         return W
 
     def _ensure_adjacency(self, tensors: List[np.ndarray]) -> None:
-        if self._adjacency_matrix is None or not self.graph_static:
+        rebuild = (
+            self._adjacency_matrix is None or
+            not self.graph_static or
+            self._adjacency_matrix.shape[0] != len(tensors)
+        )
+        if rebuild:
             if str(self.edge_rule).lower() == "cosine":
                 self._adjacency_matrix = self._build_cosine_adjacency(tensors)
             else:
